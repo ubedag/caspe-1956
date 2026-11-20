@@ -83,6 +83,10 @@ input[type=range]{width:100%}
   <input id="conf" type="range" min="0" max="100" value="50">
   <div class="row"><select id="detType"><option value="">Todos los tipos</option></select></div>
   <div class="list" id="detList"></div>
+  <div id="discBox" style="display:none;margin-top:8px">
+    <div class="row" style="justify-content:space-between"><b>Descartadas (<span id="discN">0</span>)</b><button id="restoreAll">↩ Restaurar todas</button></div>
+    <div class="list" id="discList"></div>
+  </div>
   <p class="hint">Toca un icono para ver el tipo y las coordenadas. Si una detección es errónea, pulsa «Descartar» en su ficha.</p>
 
   <h2>3. Mis marcas</h2>
@@ -233,7 +237,7 @@ function visibleDet(){
 }
 function renderDet(){
   document.getElementById('confV').textContent = conf.value+'%';
-  detLayer.clearLayers(); const list = document.getElementById('detList'); list.innerHTML='';
+  renderDisc(); detLayer.clearLayers(); const list = document.getElementById('detList'); list.innerHTML='';
   if (!showDet.checked) return;
   const v = visibleDet();
   v.lineas.forEach(l=>{
@@ -251,6 +255,20 @@ function renderDet(){
   });
 }
 window.discard = id => { discarded.add(id); store.set('cxDiscard',[...discarded]); map.closePopup(); renderDet(); };
+window.restore = id => { discarded.delete(id); store.set('cxDiscard',[...discarded]); renderDet(); };
+document.getElementById('restoreAll').onclick = ()=>{ if(confirm('¿Restaurar todas las descartadas?')){ discarded.clear(); store.set('cxDiscard',[]); renderDet(); } };
+function renderDisc(){
+  const box = document.getElementById('discBox'), list = document.getElementById('discList');
+  box.style.display = discarded.size ? 'block' : 'none'; document.getElementById('discN').textContent = discarded.size; list.innerHTML='';
+  [...discarded].forEach(id=>{
+    const p = DET.puntos.find(q=>q.id===id), l = p ? null : DET.lineas.find(q=>q.id===id);
+    const d = document.createElement('div');
+    d.innerHTML = (p ? `${ico(p.tipo)} ${p.id} · ${nom(p.tipo)}` : `〰 ${id} · camino`) + ` <button class="restore" style="float:right;padding:0 6px">↩ Restaurar</button>`;
+    d.onclick = ()=>{ if(p) map.setView([p.lat,p.lon],18); else if(l) map.fitBounds(l.puntos); };
+    d.querySelector('.restore').onclick = ev=>{ ev.stopPropagation(); restore(id); if(p) map.setView([p.lat,p.lon],18); };
+    list.appendChild(d);
+  });
+}
 renderDet();
 
 // ---------- Marcas propias ----------
@@ -342,7 +360,10 @@ addEventListener('online',upd); addEventListener('offline',upd); upd();
 const side = document.getElementById('side');
 document.getElementById('toggleSide').onclick = ()=>{ side.classList.toggle('min'); setTimeout(()=>map.invalidateSize(),50); };
 function collapseOnMobile(){ if (innerWidth<=700){ side.classList.add('min'); setTimeout(()=>map.invalidateSize(),50); } }
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});
+  let reloaded=false; navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(!reloaded){ reloaded=true; location.reload(); } });
+}
 
 // ---------- Descarga completa para uso sin conexión (iPhone / web) ----------
 (function(){
@@ -358,7 +379,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) naviga
     try{
       if (navigator.storage && navigator.storage.persist) { try{ await navigator.storage.persist(); }catch(e){} }
       const list = await (await fetch('tiles.json', {cache:'no-store'})).json();
-      const files = ['./','index.html','lib/leaflet.js','lib/leaflet.css','detecciones.js','manifest.json','icon.png','tiles.json', ...list];
+      const files = [...list];  // la página y los datos los guarda el service worker
       const cache = await caches.open(CACHE);
       let i = 0, ok = 0, fail = 0; prog.max = files.length;
       const worker = async ()=>{

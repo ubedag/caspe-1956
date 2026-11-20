@@ -1,9 +1,17 @@
-// Sirve primero desde la caché: así la app funciona sin conexión
-const C='caspe-v3';
-const CORE=['./','index.html','lib/leaflet.js','lib/leaflet.css','detecciones.js','manifest.json','icon.png'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(CORE))); self.skipWaiting();});
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+// Teselas: primero desde la caché (se guardan con "Descargar todo").
+// Página y datos: primero desde internet si hay, para recibir actualizaciones; si no, desde la caché.
+const TILES='caspe-v3';            // misma caché que usa el botón "Descargar todo": no se borra al actualizar
+const CORE='caspe-core-v4';
+const FILES=['./','index.html','lib/leaflet.js','lib/leaflet.css','detecciones.js','manifest.json','icon.png','tiles.json'];
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CORE).then(c=>c.addAll(FILES))); self.skipWaiting();});
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==TILES&&k!==CORE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
-  if(e.request.method!=='GET') return;
-  e.respondWith(caches.open(C).then(c=>c.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request).then(res=>{ if(res.ok) c.put(e.request,res.clone()); return res; }))));
+  const req=e.request; if(req.method!=='GET') return;
+  const url=new URL(req.url);
+  if(url.pathname.includes('/tiles/')){
+    e.respondWith(caches.match(req,{ignoreSearch:true}).then(r=>r||fetch(req).then(res=>{ if(res.ok){const cp=res.clone(); caches.open(TILES).then(c=>c.put(req,cp));} return res; })));
+  } else {
+    e.respondWith(fetch(req).then(res=>{ if(res.ok){const cp=res.clone(); caches.open(CORE).then(c=>c.put(req,cp));} return res; })
+      .catch(()=>caches.open(CORE).then(c=>c.match(req,{ignoreSearch:true}).then(r=>r||c.match('index.html'))).then(r=>r||caches.match(req,{ignoreSearch:true}))));
+  }
 });
