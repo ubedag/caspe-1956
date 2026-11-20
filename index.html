@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0a6ebd">
+<title>Embalse de Caspe</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="lib/leaflet.css">
+<script src="lib/leaflet.js"></script>
+<script src="detecciones.js"></script>
+<style>
+:root{--bg:#f4f6f8;--panel:#ffffff;--text:#1b2430;--muted:#5d6b7a;--accent:#0a6ebd;--border:#d6dde4;--danger:#c0392b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11161c;--panel:#1b232c;--text:#e6edf3;--muted:#9aa7b4;--accent:#4aa3ff;--border:#2d3945;--danger:#ff6b5b}}
+:root[data-theme="dark"]{--bg:#11161c;--panel:#1b232c;--text:#e6edf3;--muted:#9aa7b4;--accent:#4aa3ff;--border:#2d3945;--danger:#ff6b5b}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+#app{display:flex;height:100%}
+#side{width:340px;max-width:100%;overflow-y:auto;background:var(--panel);border-right:1px solid var(--border);padding:12px 16px}
+#map{flex:1;position:relative;background:#222}
+h1{font-size:18px;margin:0}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:16px 0 6px}
+.sub{color:var(--muted);font-size:12px;margin:4px 0 8px}
+input,select,button{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+button{cursor:pointer}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.row{display:flex;gap:6px;align-items:center;margin:4px 0;flex-wrap:wrap}
+.row>select{flex:1;min-width:0}
+input[type=range]{width:100%}
+.list div{padding:4px 6px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px}
+.list div:hover{background:var(--bg)}
+.list .del{float:right;color:var(--danger);border:none;background:none;padding:0 4px}
+.list{max-height:260px;overflow-y:auto}
+#swipe{position:absolute;top:0;bottom:0;width:4px;margin-left:-2px;background:#fff;box-shadow:0 0 4px #000;z-index:800;cursor:ew-resize;display:none;touch-action:none}
+#swipe::after{content:"⇆";position:absolute;top:50%;left:-14px;width:32px;height:32px;border-radius:50%;background:#fff;color:#000;text-align:center;line-height:32px;font-size:18px}
+.tag{position:absolute;top:10px;z-index:700;background:rgba(0,0,0,.6);color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;display:none}
+#tagL{left:60px}#tagR{right:10px}
+#toggleSide{display:none}
+.hint{font-size:12px;color:var(--muted)}
+.badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;background:var(--bg);border:1px solid var(--border)}
+#net{font-size:11px}
+.det-ico{font-size:20px;line-height:20px;text-shadow:0 0 3px #000,0 0 6px #000}
+.leaflet-popup-content{font-size:13px}
+@media (max-width:700px){
+ #app{flex-direction:column}
+ #side{width:100%;height:46%;border-right:none;border-bottom:1px solid var(--border)}
+ #side.min{height:auto;max-height:52px;overflow:hidden}
+ #toggleSide{display:inline-block}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<aside id="side">
+  <div class="row" style="justify-content:space-between">
+    <h1>Embalse de Caspe</h1>
+    <span><span id="net" class="badge">sin conexión</span> <button id="toggleSide">☰</button></span>
+  </div>
+  <p class="sub">Ebro en Caspe (embalse de Mequinenza). Vuelo Americano Serie B 1956-57 superpuesto con la ortofoto actual. Funciona <b>sin internet</b>: las imágenes van dentro de la carpeta.</p>
+
+  <h2>1. Capas</h2>
+  <div class="row" style="justify-content:space-between"><b>Antigua (1956-57)</b><span id="opHistV"></span></div>
+  <input id="opHist" type="range" min="0" max="100" value="60">
+  <div class="row" style="justify-content:space-between"><b>Actual (PNOA)</b><span id="opNowV"></span></div>
+  <input id="opNow" type="range" min="0" max="100" value="100">
+  <div class="row">
+    <button id="swap">⇅ Poner la <span id="swapTxt">actual</span> encima</button>
+    <button id="fade">◐ Fundido</button>
+  </div>
+  <div class="row"><label><input type="checkbox" id="swipeChk"> Cortina</label></div>
+
+  <h2>2. Estructuras detectadas</h2>
+  <p class="hint" id="detInfo"></p>
+  <div class="row">
+    <label><input type="checkbox" id="showDet" checked> Mostrar</label>
+    <label><input type="checkbox" id="onlyWater" checked> Solo bajo el agua</label>
+  </div>
+  <div class="row">
+    <label><input type="checkbox" id="onlyVer"> Solo verificadas ✔</label>
+    <label><input type="checkbox" id="showLines"> Caminos de 1956</label>
+  </div>
+  <div class="row"><span class="hint" style="flex:1">Confianza mínima: <b id="confV"></b></span></div>
+  <input id="conf" type="range" min="0" max="100" value="50">
+  <div class="row"><select id="detType"><option value="">Todos los tipos</option></select></div>
+  <div class="list" id="detList"></div>
+  <p class="hint">Toca un icono para ver el tipo y las coordenadas. Si una detección es errónea, pulsa «Descartar» en su ficha.</p>
+
+  <h2>3. Mis marcas</h2>
+  <div class="row">
+    <select id="cat">
+      <option value="PTE">Puente</option><option value="CASA">Casa</option><option value="NAVE">Nave / corral</option>
+      <option value="IGL">Iglesia / ermita</option><option value="MURO">Muro / bancal</option><option value="POZO">Pozo / noria</option>
+      <option value="ARB">Arboleda</option><option value="OTRO">Otro</option>
+    </select>
+  </div>
+  <div class="row">
+    <button id="addWp">📍 Añadir punto</button>
+    <button id="addTrk">〰 Trazar camino</button>
+    <button id="endTrk" style="display:none" class="primary">Terminar</button>
+  </div>
+  <div class="hint" id="drawHint">Pulsa un botón y luego toca el mapa.</div>
+  <div class="list" id="wplist"></div>
+
+  <h2>4. Pasar a la Lowrance</h2>
+  <div class="row">
+    <button id="exp" class="primary">⬇ Exportar GPX</button>
+    <label class="hint" style="cursor:pointer"><input type="file" id="imp" accept=".gpx" style="display:none"><u>Importar GPX</u></label>
+  </div>
+  <p class="hint">Incluye las detecciones visibles (con el filtro actual) y tus marcas. Copia el .gpx a la SD (FAT32) → en la Elite FS: <b>Inicio → Archivos → SD → archivo → Importar</b>.</p>
+
+  <h2>Guardar para usar sin conexión</h2>
+  <div id="dlBox">
+    <div class="row"><button id="dlAll" class="primary">⬇ Descargar todo (≈130 MB)</button></div>
+    <progress id="dlProg" value="0" max="1" style="width:100%;display:none"></progress>
+    <p class="hint" id="dlInfo">Hazlo con wifi antes de salir. Guarda las dos fotos de todo el embalse en el móvil.</p>
+  </div>
+
+  <h2>En el barco</h2>
+  <div class="row"><button id="gps">🛰 Mi posición</button><span class="hint" id="coord"></span></div>
+  <p class="hint">Imágenes © Instituto Geográfico Nacional (PNOA, PNOA histórico). Detección automática por IA sobre el vuelo de 1956: revisa cada punto, puede haber falsos positivos.</p>
+</aside>
+<div id="map">
+  <div id="swipe"></div>
+  <div class="tag" id="tagL">Antigua</div>
+  <div class="tag" id="tagR">Actual</div>
+</div>
+</div>
+
+<script>
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const DET = window.DETECCIONES || {meta:{}, puntos:[], lineas:[]};
+const META = DET.meta || {};
+const BOUNDS = L.latLngBounds(META.bounds || [[41.12,-0.40],[41.45,0.20]]);
+const MAXNATIVE = META.maxNative || 17;
+
+// ---------- Capa local con recurso a zoom inferior cuando falta la tesela ----------
+const LocalTiles = L.GridLayer.extend({
+  initialize(dir, opts){ this._dir = dir; L.setOptions(this, opts); },
+  createTile(c, done){
+    const canvas = document.createElement('canvas'); const s = this.getTileSize(); canvas.width = s.x; canvas.height = s.y;
+    const ctx = canvas.getContext('2d');
+    const z0 = Math.min(c.z, MAXNATIVE);
+    const tryZ = z => {
+      if (z < 11){ done(null, canvas); return; }
+      const f = Math.pow(2, c.z - z), x = Math.floor(c.x / f), y = Math.floor(c.y / f);
+      const img = new Image();
+      img.onload = () => {
+        const sub = 256 / f, sx = (c.x - x*f) * sub, sy = (c.y - y*f) * sub;
+        ctx.imageSmoothingEnabled = true; ctx.drawImage(img, sx, sy, sub, sub, 0, 0, s.x, s.y); done(null, canvas);
+      };
+      img.onerror = () => tryZ(z - 1);
+      img.src = `tiles/${this._dir}/${z}/${x}/${y}.jpg`;
+    };
+    tryZ(z0);
+    return canvas;
+  }
+});
+
+const saved = store.get('cxView', null);
+const map = L.map('map', {maxZoom:19, minZoom:11, maxBounds:BOUNDS.pad(0.05)});
+if (saved && BOUNDS.contains([saved[0],saved[1]])) map.setView([saved[0],saved[1]], saved[2]); else map.setView([41.275,-0.03], 13);
+map.on('moveend', ()=>{ const c = map.getCenter(); store.set('cxView',[c.lat,c.lng,map.getZoom()]); });
+map.attributionControl.addAttribution('© IGN');
+map.createPane('now'); map.createPane('hist');
+const now = new LocalTiles('now', {pane:'now', bounds:BOUNDS, maxZoom:19}).addTo(map);
+const hist = new LocalTiles('hist', {pane:'hist', bounds:BOUNDS, maxZoom:19}).addTo(map);
+
+// ---------- Transparencias ----------
+let swipeX = null, histOnTop = store.get('cxTop', true);
+const opHist = document.getElementById('opHist'), opNow = document.getElementById('opNow'), swipeChk = document.getElementById('swipeChk');
+const swipe = document.getElementById('swipe'), tagL = document.getElementById('tagL'), tagR = document.getElementById('tagR');
+opHist.value = store.get('cxOpH', 60); opNow.value = store.get('cxOpN', 100);
+opHist.oninput = opNow.oninput = ()=>{ store.set('cxOpH', +opHist.value); store.set('cxOpN', +opNow.value); applyMode(); };
+swipeChk.onchange = applyMode;
+document.getElementById('swap').onclick = ()=>{ histOnTop = !histOnTop; store.set('cxTop', histOnTop); applyMode(); };
+document.getElementById('fade').onclick = ()=>{ const t = histOnTop ? opHist : opNow; t.value = +t.value > 50 ? 0 : 100; t.oninput(); };
+function applyMode(){
+  const ph = map.getPane('hist'), pn = map.getPane('now');
+  const top = histOnTop ? ph : pn, bottom = histOnTop ? pn : ph;
+  top.style.zIndex = 250; bottom.style.zIndex = 240;
+  ph.style.opacity = opHist.value/100; pn.style.opacity = opNow.value/100;
+  document.getElementById('opHistV').textContent = opHist.value+'%';
+  document.getElementById('opNowV').textContent = opNow.value+'%';
+  document.getElementById('swapTxt').textContent = histOnTop ? 'actual' : 'antigua';
+  const size = map.getSize(); if (swipeX === null || swipeX > size.x) swipeX = size.x/2;
+  const sw = swipeChk.checked;
+  swipe.style.display = tagL.style.display = tagR.style.display = sw ? 'block':'none';
+  tagL.textContent = histOnTop ? 'Antigua' : 'Actual'; tagR.textContent = histOnTop ? 'Actual' : 'Antigua';
+  bottom.style.clip = '';
+  if (sw){
+    swipe.style.left = swipeX+'px';
+    const nw = map.containerPointToLayerPoint([0,0]), se = map.containerPointToLayerPoint(size);
+    const cx = map.containerPointToLayerPoint([swipeX,0]).x;
+    top.style.clip = `rect(${nw.y}px, ${cx}px, ${se.y}px, ${nw.x}px)`;
+  } else top.style.clip = '';
+}
+map.on('move zoom resize', applyMode); applyMode();
+(function(){ let drag=false;
+  swipe.addEventListener('pointerdown', e=>{drag=true; map.dragging.disable(); swipe.setPointerCapture(e.pointerId);});
+  swipe.addEventListener('pointermove', e=>{ if(!drag) return; const r = map.getContainer().getBoundingClientRect(); swipeX = Math.max(0,Math.min(r.width,e.clientX-r.left)); applyMode(); });
+  swipe.addEventListener('pointerup', ()=>{drag=false; map.dragging.enable();});
+})();
+
+// ---------- Utilidades ----------
+const TIPOS = {CASA:['🏠','Casa / masía'],NAVE:['🏚','Nave'],CORRAL:['🐑','Corral / paridera'],IGL:['⛪','Iglesia / ermita'],PTE:['🌉','Puente'],
+  PRESA:['🚧','Presa / azud'],MURO:['🧱','Muro / bancal'],POZO:['💧','Pozo / noria'],ERA:['⭕','Era'],MOLINO:['⚙️','Molino'],RUINA:['🏛','Ruina'],
+  ESTACION:['🚉','Estación'],ARB:['🌳','Arboleda'],OTRO:['❗','Otro']};
+const LINEAS = {CAMINO:['#ffcc00','Camino'],CARRETERA:['#ff7a00','Carretera'],TREN:['#ff3b3b','Vía de tren'],ACEQUIA:['#36c5ff','Acequia']};
+const ico = t => (TIPOS[t]||TIPOS.OTRO)[0], nom = t => (TIPOS[t]||TIPOS.OTRO)[1];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function dms(v, pos, neg){ const a=Math.abs(v), d=Math.floor(a), m=(a-d)*60; return `${d}°${m.toFixed(3)}'${v>=0?pos:neg}`; }
+const fmt = (la,lo) => `${la.toFixed(6)}, ${lo.toFixed(6)}<br>${dms(la,'N','S')} ${dms(lo,'E','W')}`;
+const divIcon = t => L.divIcon({className:'', html:`<div class="det-ico">${ico(t)}</div>`, iconSize:[22,22], iconAnchor:[11,11]});
+
+// ---------- Detecciones ----------
+let discarded = new Set(store.get('cxDiscard', []));
+const detLayer = L.layerGroup().addTo(map);
+const onlyVer = document.getElementById('onlyVer'), showLines = document.getElementById('showLines');
+const showDet = document.getElementById('showDet'), onlyWater = document.getElementById('onlyWater'), conf = document.getElementById('conf'), detType = document.getElementById('detType');
+const types = [...new Set(DET.puntos.map(p=>p.tipo))].sort();
+types.forEach(t=>detType.insertAdjacentHTML('beforeend',`<option value="${t}">${ico(t)} ${nom(t)} (${DET.puntos.filter(p=>p.tipo===t).length})</option>`));
+document.getElementById('detInfo').textContent = `${DET.puntos.length} estructuras detectadas en ${META.teselas||'?'} recuadros del vuelo de 1956; ${DET.puntos.filter(p=>p.bajo_agua).length} quedan hoy bajo el agua (${DET.puntos.filter(p=>p.bajo_agua&&p.verificado).length} verificadas ✔). ${DET.lineas.length} tramos de caminos sumergidos.`;
+[showDet,onlyWater,detType,onlyVer,showLines].forEach(e=>e.onchange=renderDet); conf.oninput = renderDet;
+function visibleDet(){
+  const c = conf.value/100;
+  return {
+    puntos: DET.puntos.filter(p=>!discarded.has(p.id) && (!onlyWater.checked||p.bajo_agua) && (!onlyVer.checked||p.verificado) && p.confianza>=c && (!detType.value||p.tipo===detType.value)),
+    lineas: showLines.checked ? DET.lineas.filter(l=>!discarded.has(l.id) && (!onlyWater.checked||l.bajo_agua) && !detType.value) : []
+  };
+}
+function renderDet(){
+  document.getElementById('confV').textContent = conf.value+'%';
+  detLayer.clearLayers(); const list = document.getElementById('detList'); list.innerHTML='';
+  if (!showDet.checked) return;
+  const v = visibleDet();
+  v.lineas.forEach(l=>{
+    const [col,n] = LINEAS[l.tipo]||LINEAS.CAMINO;
+    L.polyline(l.puntos,{color:col,weight:3,opacity:.9,dashArray:'6 4'}).addTo(detLayer)
+      .bindPopup(()=>`<b>${n} de 1956</b>${l.bajo_agua?' · bajo el agua':''}<br>${l.puntos.length} puntos<br><button onclick="discard('${l.id}')">Descartar</button>`);
+  });
+  v.puntos.forEach(p=>{
+    L.marker([p.lat,p.lon],{icon:divIcon(p.tipo)}).addTo(detLayer)
+      .bindPopup(()=>`<b>${ico(p.tipo)} ${nom(p.tipo)}</b> · ${p.id}<br>${fmt(p.lat,p.lon)}<br>Confianza ${(p.confianza*100|0)}%${p.verificado?' ✔ verificada':' · sin verificar'}${p.bajo_agua?' · <b>bajo el agua</b>':''}${p.tam?`<br>Tamaño aprox. ${p.tam} m`:''}${p.nota?`<br><i>${esc(p.nota)}</i>`:''}<br><button onclick="discard('${p.id}')">Descartar</button>`);
+  });
+  v.puntos.slice(0,400).forEach(p=>{
+    const d = document.createElement('div'); d.innerHTML = `${ico(p.tipo)} ${p.id} · ${nom(p.tipo)} <span class="hint">${(p.confianza*100|0)}%${p.verificado?' ✔':''}</span>`;
+    d.onclick = ()=>{ map.setView([p.lat,p.lon], 18); collapseOnMobile(); }; list.appendChild(d);
+  });
+}
+window.discard = id => { discarded.add(id); store.set('cxDiscard',[...discarded]); map.closePopup(); renderDet(); };
+renderDet();
+
+// ---------- Marcas propias ----------
+let data = store.get('cxMarks', {wpts:[], trks:[]});
+const marks = L.layerGroup().addTo(map);
+function save(){ store.set('cxMarks', data); renderMarks(); }
+function renderMarks(){
+  marks.clearLayers(); const list = document.getElementById('wplist'); list.innerHTML='';
+  data.wpts.forEach((w,i)=>{
+    L.marker([w.lat,w.lon],{icon:divIcon(w.cat),draggable:true}).bindPopup(`<b>${esc(w.name)}</b><br>${fmt(w.lat,w.lon)}`).addTo(marks)
+      .on('dragend',e=>{const p=e.target.getLatLng(); w.lat=p.lat; w.lon=p.lng; save();});
+    const d = document.createElement('div'); d.innerHTML = `${ico(w.cat)} ${esc(w.name)}<button class="del">✕</button>`;
+    d.onclick = ()=>map.setView([w.lat,w.lon],18);
+    d.querySelector('.del').onclick = ev=>{ev.stopPropagation(); data.wpts.splice(i,1); save();};
+    list.appendChild(d);
+  });
+  data.trks.forEach((t,i)=>{
+    L.polyline(t.pts,{color:'#00ff88',weight:4}).bindTooltip(t.name).addTo(marks);
+    const d = document.createElement('div'); d.innerHTML = `〰 ${esc(t.name)}<button class="del">✕</button>`;
+    d.onclick = ()=>map.fitBounds(t.pts);
+    d.querySelector('.del').onclick = ev=>{ev.stopPropagation(); data.trks.splice(i,1); save();};
+    list.appendChild(d);
+  });
+}
+renderMarks();
+let draw=null, cur=null, curLine=null;
+const hint = document.getElementById('drawHint'), endBtn = document.getElementById('endTrk'), catSel = document.getElementById('cat');
+document.getElementById('addWp').onclick = ()=>{ draw='wp'; hint.textContent='Toca el mapa donde está la estructura.'; collapseOnMobile(); };
+document.getElementById('addTrk').onclick = ()=>{ draw='trk'; cur=[]; curLine=L.polyline([],{color:'#00ff88',weight:4}).addTo(map); endBtn.style.display='inline-block'; hint.textContent='Toca punto a punto y pulsa Terminar.'; collapseOnMobile(); };
+endBtn.onclick = ()=>{
+  if (cur && cur.length>1){ const n = prompt('Nombre del camino (máx. 15 letras):','CAMINO '+(data.trks.length+1)); if(n!==null) data.trks.push({name:n.slice(0,15),pts:cur}); }
+  if (curLine) map.removeLayer(curLine); draw=null; cur=null; endBtn.style.display='none'; hint.textContent='Pulsa un botón y luego toca el mapa.'; save();
+};
+map.on('click', e=>{
+  document.getElementById('coord').innerHTML = fmt(e.latlng.lat, e.latlng.lng);
+  if (draw==='wp'){
+    const n = prompt('Nombre (máx. 15 letras):', catSel.value+' '+(data.wpts.filter(w=>w.cat===catSel.value).length+1));
+    if (n!==null){ data.wpts.push({lat:e.latlng.lat,lon:e.latlng.lng,cat:catSel.value,name:n.slice(0,15)}); save(); }
+    draw=null; hint.textContent='Pulsa un botón y luego toca el mapa.';
+  } else if (draw==='trk'){ cur.push([e.latlng.lat,e.latlng.lng]); curLine.setLatLngs(cur); }
+});
+
+// ---------- GPX ----------
+const SYM = t => t==='PTE'?'bridge':(t==='CASA'||t==='NAVE'||t==='CORRAL'||t==='RUINA'||t==='MOLINO')?'house':t==='IGL'?'church':'diamond';
+function toGPX(){
+  const time = new Date().toISOString(), v = visibleDet();
+  let g = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="EmbalseCaspe" xmlns="http://www.topografix.com/GPX/1/1">\n<metadata><name>Caspe 1956 bajo el agua</name><time>${time}</time></metadata>\n`;
+  const wpt = (la,lo,n,d,s) => `<wpt lat="${la.toFixed(7)}" lon="${lo.toFixed(7)}"><time>${time}</time><name>${esc(n)}</name><desc>${esc(d)}</desc><sym>${s}</sym></wpt>\n`;
+  v.puntos.forEach(p=> g += wpt(p.lat,p.lon,`${p.tipo.slice(0,4)} ${p.id}`.slice(0,15), `${nom(p.tipo)} 1956 - conf ${(p.confianza*100|0)}%${p.verificado?' verif':''}${p.nota?' - '+p.nota:''}`, SYM(p.tipo)));
+  data.wpts.forEach(w=> g += wpt(w.lat,w.lon,w.name,nom(w.cat)+' (marca propia)',SYM(w.cat)));
+  const trk = (n,pts) => `<trk><name>${esc(n)}</name><trkseg>\n${pts.map(p=>`<trkpt lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}"></trkpt>`).join('\n')}\n</trkseg></trk>\n`;
+  v.lineas.forEach(l=> g += trk(`${l.tipo.slice(0,5)} ${l.id}`.slice(0,15), l.puntos));
+  data.trks.forEach(t=> g += trk(t.name, t.pts));
+  return g + '</gpx>\n';
+}
+document.getElementById('exp').onclick = ()=>{
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([toGPX()],{type:'application/gpx+xml'}));
+  a.download = 'caspe_1956.gpx'; document.body.appendChild(a); a.click(); a.remove();
+};
+document.getElementById('imp').onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  f.text().then(txt=>{
+    const doc = new DOMParser().parseFromString(txt,'text/xml');
+    doc.querySelectorAll('wpt').forEach(w=>{ const n=(w.querySelector('name')?.textContent||'PUNTO').slice(0,15); data.wpts.push({lat:+w.getAttribute('lat'),lon:+w.getAttribute('lon'),cat:Object.keys(TIPOS).find(c=>n.toUpperCase().startsWith(c))||'OTRO',name:n}); });
+    doc.querySelectorAll('trk').forEach(t=>{ const pts=[...t.querySelectorAll('trkpt')].map(p=>[+p.getAttribute('lat'),+p.getAttribute('lon')]); if(pts.length>1) data.trks.push({name:(t.querySelector('name')?.textContent||'CAMINO').slice(0,15),pts}); });
+    save(); e.target.value='';
+  });
+};
+
+// ---------- GPS ----------
+let me=null, meAcc=null, watch=null;
+document.getElementById('gps').onclick = ()=>{
+  if (watch!==null){ navigator.geolocation.clearWatch(watch); watch=null; if(me){map.removeLayer(me);map.removeLayer(meAcc);me=null;} return; }
+  if (!navigator.geolocation) return alert('GPS no disponible');
+  let first=true;
+  watch = navigator.geolocation.watchPosition(p=>{
+    const ll=[p.coords.latitude,p.coords.longitude];
+    if(!me){ me=L.circleMarker(ll,{radius:8,color:'#fff',fillColor:'#1e90ff',fillOpacity:1,weight:3}).addTo(map); meAcc=L.circle(ll,{radius:p.coords.accuracy,weight:1}).addTo(map); }
+    me.setLatLng(ll); meAcc.setLatLng(ll).setRadius(p.coords.accuracy);
+    document.getElementById('coord').innerHTML = fmt(ll[0],ll[1]);
+    if(first){ map.setView(ll,17); first=false; }
+  }, err=>alert('No se pudo obtener la posición: '+err.message), {enableHighAccuracy:true});
+};
+
+// ---------- Estado de red, móvil y modo app (PWA) ----------
+const net = document.getElementById('net');
+const upd = ()=>{ net.textContent = navigator.onLine ? 'online (no la necesita)' : 'sin conexión ✓'; };
+addEventListener('online',upd); addEventListener('offline',upd); upd();
+const side = document.getElementById('side');
+document.getElementById('toggleSide').onclick = ()=>{ side.classList.toggle('min'); setTimeout(()=>map.invalidateSize(),50); };
+function collapseOnMobile(){ if (innerWidth<=700){ side.classList.add('min'); setTimeout(()=>map.invalidateSize(),50); } }
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+// ---------- Descarga completa para uso sin conexión (iPhone / web) ----------
+(function(){
+  const btn = document.getElementById('dlAll'), prog = document.getElementById('dlProg'), info = document.getElementById('dlInfo');
+  const CACHE = 'caspe-v3';
+  if (!location.protocol.startsWith('http') || !('caches' in window)){
+    btn.disabled = true; info.textContent = 'Abierta desde la carpeta: ya funciona sin conexión, no hace falta descargar nada.'; return;
+  }
+  const done = store.get('cxDl', null);
+  if (done) info.textContent = `Descargado el ${new Date(done.t).toLocaleDateString()} (${done.n} imágenes). Ya funciona sin conexión.`;
+  btn.onclick = async ()=>{
+    btn.disabled = true; prog.style.display = 'block';
+    try{
+      if (navigator.storage && navigator.storage.persist) { try{ await navigator.storage.persist(); }catch(e){} }
+      const list = await (await fetch('tiles.json', {cache:'no-store'})).json();
+      const files = ['./','index.html','lib/leaflet.js','lib/leaflet.css','detecciones.js','manifest.json','icon.png','tiles.json', ...list];
+      const cache = await caches.open(CACHE);
+      let i = 0, ok = 0, fail = 0; prog.max = files.length;
+      const worker = async ()=>{
+        while (i < files.length){
+          const u = new URL(files[i++], location.href).href;
+          try{
+            if (!(await cache.match(u))){ const r = await fetch(u); if (!r.ok) throw 0; await cache.put(u, r); }
+            ok++;
+          }catch(e){ fail++; }
+          prog.value = ok + fail;
+          info.textContent = `Descargando… ${ok + fail} de ${files.length}${fail ? ` (${fail} fallos)` : ''}`;
+        }
+      };
+      await Promise.all(Array.from({length:6}, worker));
+      if (fail){ info.textContent = `Terminado con ${fail} fallos de ${files.length}. Pulsa otra vez para reintentar los que faltan.`; }
+      else { store.set('cxDl', {t:Date.now(), n:files.length}); info.textContent = `✓ Todo descargado (${files.length} archivos). Ya puedes usarla sin conexión.`; }
+    }catch(e){ info.textContent = 'Error al descargar: ' + e.message + '. Comprueba la conexión y vuelve a intentarlo.'; }
+    btn.disabled = false;
+  };
+})();
+</script>
+</body>
+</html>

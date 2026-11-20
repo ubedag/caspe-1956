@@ -1,0 +1,16 @@
+EMBALSE DE CASPE 1956 - APP SIN CONEXIÓN
+=========================================
+1. Abre index.html con Chrome, Edge o Firefox (doble clic). No necesita internet.
+2. Barras "Antigua" y "Actual": transparencia de cada ortofoto superpuesta.
+3. "Estructuras detectadas": casas, masías, eras, corrales, pozos, puentes... del
+   vuelo de 1956 que hoy quedan bajo el agua, con coordenadas (toca el icono).
+4. Exportar GPX -> copiar a la tarjeta SD (FAT32) -> en la Lowrance Elite FS:
+   Inicio > Archivos > tarjeta > archivo .gpx > Importar.
+   Ya incluidos: Caspe_1956_verificadas.gpx (las más fiables),
+                 Caspe_1956_bajo_agua.gpx (todas las sumergidas),
+                 Caspe_1956_caminos.gpx (caminos antiguos como trails).
+EN EL MÓVIL: copia la carpeta completa y ábrela con un visor HTML local, o súbela
+a cualquier hosting web estático (https); al abrirla se instala como app y
+funciona sin conexión (las zonas visitadas quedan guardadas).
+Detección automática por IA: revisa cada punto; puede haber errores de 10-20 m
+y algún falso positivo. Imágenes © Instituto Geográfico Nacional (PNOA).
