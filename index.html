@@ -39,6 +39,13 @@ input[type=range]{width:100%}
 .hint{font-size:12px;color:var(--muted)}
 .badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;background:var(--bg);border:1px solid var(--border)}
 #net{font-size:11px}
+.boat{width:46px;height:46px;transition:transform .4s linear;filter:drop-shadow(0 0 2px #000) drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+.boatlbl{position:absolute;top:46px;left:50%;transform:translateX(-50%);white-space:nowrap;font:bold 11px system-ui;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000}
+.fish-ico{font-size:22px;line-height:22px;text-shadow:0 0 3px #000,0 0 6px #fff}
+#catchDlg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:none;align-items:center;justify-content:center;padding:16px}
+#catchDlg .box{background:var(--panel);color:var(--text);border-radius:10px;padding:14px 16px;width:100%;max-width:380px;max-height:90vh;overflow:auto}
+#catchDlg label{display:block;font-size:12px;color:var(--muted);margin-top:8px}
+#catchDlg input,#catchDlg select,#catchDlg textarea{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
 .det-ico{font-size:20px;line-height:20px;text-shadow:0 0 3px #000,0 0 6px #000}
 .leaflet-popup-content{font-size:13px}
 @media (max-width:700px){
@@ -87,7 +94,7 @@ input[type=range]{width:100%}
     <div class="row" style="justify-content:space-between"><b>Descartadas (<span id="discN">0</span>)</b><button id="restoreAll">↩ Restaurar todas</button></div>
     <div class="list" id="discList"></div>
   </div>
-  <p class="hint">Toca un icono para ver el tipo y las coordenadas. Si una detección es errónea, pulsa «Descartar» en su ficha.</p>
+  <p class="hint">Las de confianza 60% son de la pasada fina en reculas (menos fiables): sube la barra a 65% para ocultarlas. Toca un icono para ver el tipo y las coordenadas. Si una detección es errónea, pulsa «Descartar» en su ficha.</p>
 
   <h2>3. Mis marcas</h2>
   <div class="row">
@@ -105,24 +112,61 @@ input[type=range]{width:100%}
   <div class="hint" id="drawHint">Pulsa un botón y luego toca el mapa.</div>
   <div class="list" id="wplist"></div>
 
+  <h2>🎣 Mis capturas</h2>
+  <div class="row">
+    <button id="catchHere" class="primary">🐟 Captura aquí (GPS)</button>
+    <button id="catchMap">📍 En el mapa</button>
+  </div>
+  <div class="hint" id="catchInfo">Guarda especie, peso, señuelo y profundidad donde has sacado un pez.</div>
+  <div class="row"><label><input type="checkbox" id="showCatch" checked> Mostrar capturas</label><button id="catchCsv">⬇ CSV</button></div>
+  <div class="list" id="catchList"></div>
+
   <h2>4. Pasar a la Lowrance</h2>
   <div class="row">
     <button id="exp" class="primary">⬇ Exportar GPX</button>
     <label class="hint" style="cursor:pointer"><input type="file" id="imp" accept=".gpx" style="display:none"><u>Importar GPX</u></label>
   </div>
-  <p class="hint">Incluye las detecciones visibles (con el filtro actual) y tus marcas. Copia el .gpx a la SD (FAT32) → en la Elite FS: <b>Inicio → Archivos → SD → archivo → Importar</b>.</p>
+  <p class="hint">Incluye las detecciones visibles (con el filtro actual), tus marcas y tus capturas (🐟 nombre «PEZ …»). Copia el .gpx a la SD (FAT32) → en la Elite FS: <b>Inicio → Archivos → SD → archivo → Importar</b>.</p>
 
   <h2>Guardar para usar sin conexión</h2>
   <div id="dlBox">
-    <div class="row"><button id="dlAll" class="primary">⬇ Descargar todo (≈130 MB)</button></div>
+    <div class="row"><button id="dlAll" class="primary">⬇ Descargar todo (≈150 MB)</button></div>
     <progress id="dlProg" value="0" max="1" style="width:100%;display:none"></progress>
     <p class="hint" id="dlInfo">Hazlo con wifi antes de salir. Guarda las dos fotos de todo el embalse en el móvil.</p>
   </div>
 
   <h2>En el barco</h2>
-  <div class="row"><button id="gps">🛰 Mi posición</button><span class="hint" id="coord"></span></div>
+  <div class="row"><button id="gps">🛰 Mi posición</button><label><input type="checkbox" id="follow" checked> Seguir el barco</label></div>
+  <div class="hint" id="coord"></div>
+  <details style="margin-top:6px"><summary class="hint" style="cursor:pointer">⚙ Mi barco (nombre y colores)</summary>
+    <div class="row"><input id="boatName" type="text" placeholder="Nombre" style="flex:1"></div>
+    <div class="row"><label class="hint">Casco <input id="boatHull" type="color" value="#ffffff"></label><label class="hint">Franja <input id="boatStripe" type="color" value="#c0392b"></label><label class="hint">Cubierta <input id="boatDeck" type="color" value="#d9d2c3"></label></div>
+    <div id="boatPrev" style="height:56px;display:flex;align-items:center;gap:10px"></div>
+  </details>
   <p class="hint">Imágenes © Instituto Geográfico Nacional (PNOA, PNOA histórico). Detección automática por IA sobre el vuelo de 1956: revisa cada punto, puede haber falsos positivos.</p>
 </aside>
+<div id="catchDlg"><div class="box">
+  <h1 style="font-size:17px">🐟 Nueva captura</h1>
+  <div class="hint" id="cPos"></div>
+  <label>Especie<select id="cSp">
+    <option>Black bass</option><option>Siluro</option><option>Carpa</option><option>Lucioperca</option><option>Barbo</option>
+    <option>Pez gato</option><option>Perca</option><option>Lucio</option><option>Alburno</option><option>Otra</option></select></label>
+  <div class="row" style="gap:8px">
+    <label style="flex:1">Peso (kg)<input id="cKg" type="number" step="0.01" min="0" inputmode="decimal"></label>
+    <label style="flex:1">Longitud (cm)<input id="cCm" type="number" step="1" min="0" inputmode="numeric"></label>
+  </div>
+  <div class="row" style="gap:8px">
+    <label style="flex:1">Profundidad (m)<input id="cDep" type="number" step="0.1" min="0" inputmode="decimal"></label>
+    <label style="flex:1">Nº peces<input id="cN" type="number" step="1" min="1" value="1" inputmode="numeric"></label>
+  </div>
+  <label>Señuelo / cebo<input id="cLure" type="text" list="lures"></label>
+  <datalist id="lures"><option>Vinilo</option><option>Crankbait</option><option>Spinnerbait</option><option>Jig</option><option>Popper</option><option>Jerkbait</option><option>Cucharilla</option><option>Boilie</option><option>Maíz</option><option>Lombriz</option><option>Pellet</option></datalist>
+  <label>Nota<textarea id="cNote" rows="2" placeholder="estructura, agua, viento…"></textarea></label>
+  <div class="row" style="justify-content:flex-end;margin-top:10px">
+    <button id="cDel" style="display:none;color:var(--danger)">Borrar</button>
+    <button id="cCancel">Cancelar</button><button id="cSave" class="primary">Guardar</button>
+  </div>
+</div></div>
 <div id="map">
   <div id="swipe"></div>
   <div class="tag" id="tagL">Antigua</div>
@@ -247,7 +291,7 @@ function renderDet(){
   });
   v.puntos.forEach(p=>{
     L.marker([p.lat,p.lon],{icon:divIcon(p.tipo)}).addTo(detLayer)
-      .bindPopup(()=>`<b>${ico(p.tipo)} ${nom(p.tipo)}</b> · ${p.id}<br>${fmt(p.lat,p.lon)}<br>Confianza ${(p.confianza*100|0)}%${p.verificado?' ✔ verificada':' · sin verificar'}${p.bajo_agua?' · <b>bajo el agua</b>':''}${p.tam?`<br>Tamaño aprox. ${p.tam} m`:''}${p.nota?`<br><i>${esc(p.nota)}</i>`:''}<br><button onclick="discard('${p.id}')">Descartar</button>`);
+      .bindPopup(()=>`<b>${ico(p.tipo)} ${nom(p.tipo)}</b> · ${p.id}<br>${fmt(p.lat,p.lon)}<br>Confianza ${(p.confianza*100|0)}%${p.verificado?(p.fina?' ✔ verificada (recula, pasada fina: menos fiable)':' ✔ verificada'):' · sin verificar'}${p.bajo_agua?' · <b>bajo el agua</b>':''}${p.tam?`<br>Tamaño aprox. ${p.tam} m`:''}${p.nota?`<br><i>${esc(p.nota)}</i>`:''}<br><button onclick="discard('${p.id}')">Descartar</button>`);
   });
   v.puntos.slice(0,400).forEach(p=>{
     const d = document.createElement('div'); d.innerHTML = `${ico(p.tipo)} ${p.id} · ${nom(p.tipo)} <span class="hint">${(p.confianza*100|0)}%${p.verificado?' ✔':''}</span>`;
@@ -321,6 +365,7 @@ function toGPX(){
   data.wpts.forEach(w=> g += wpt(w.lat,w.lon,w.name,nom(w.cat)+' (marca propia)',SYM(w.cat)));
   const trk = (n,pts) => `<trk><name>${esc(n)}</name><trkseg>\n${pts.map(p=>`<trkpt lat="${p[0].toFixed(7)}" lon="${p[1].toFixed(7)}"></trkpt>`).join('\n')}\n</trkseg></trk>\n`;
   v.lineas.forEach(l=> g += trk(`${l.tipo.slice(0,5)} ${l.id}`.slice(0,15), l.puntos));
+  catches.forEach(c=> g += `<wpt lat="${c.lat.toFixed(7)}" lon="${c.lon.toFixed(7)}"><time>${new Date(c.t).toISOString()}</time><name>${esc(('PEZ '+c.sp).slice(0,15))}</name><desc>${esc(cTxt(c)+(c.dep!=null?' · '+c.dep+' m':'')+(c.lure?' · '+c.lure:'')+(c.note?' · '+c.note:''))}</desc><sym>fish</sym></wpt>\n`);
   data.trks.forEach(t=> g += trk(t.name, t.pts));
   return g + '</gpx>\n';
 }
@@ -338,20 +383,106 @@ document.getElementById('imp').onchange = e=>{
   });
 };
 
+// ---------- Mi barco (icono con rumbo) ----------
+const boatCfg = Object.assign({name:'Glastron', hull:'#ffffff', stripe:'#c0392b', deck:'#d9d2c3'}, store.get('cxBoat', {}));
+function boatSVG(c){
+  return `<svg class="boat" viewBox="0 0 46 46" xmlns="http://www.w3.org/2000/svg">
+  <path d="M23 2 C31 10 33 18 33 27 L33 40 Q33 44 29 44 L17 44 Q13 44 13 40 L13 27 C13 18 15 10 23 2 Z" fill="${c.hull}" stroke="#222" stroke-width="1.2"/>
+  <path d="M23 6 C29 12 30.5 18 30.5 26 L30.5 39 Q30.5 41.5 28 41.5 L18 41.5 Q15.5 41.5 15.5 39 L15.5 26 C15.5 18 17 12 23 6 Z" fill="${c.deck}"/>
+  <path d="M13.6 31 L32.4 31 L32.4 34 L13.6 34 Z" fill="${c.stripe}"/>
+  <path d="M16 22 Q23 17 30 22 L30 24 L16 24 Z" fill="#5a7d9a" stroke="#222" stroke-width=".6"/>
+  <rect x="17" y="25.5" width="5" height="4" rx="1" fill="#444"/><rect x="24" y="25.5" width="5" height="4" rx="1" fill="#444"/>
+  <rect x="19" y="36" width="8" height="4" rx="1" fill="#555"/>
+  <rect x="20" y="43" width="6" height="3" rx="1" fill="#222"/>
+  <path d="M23 7 L23 15" stroke="${c.stripe}" stroke-width="1.5"/>
+</svg>`;
+}
+const boatHtml = (c,rot) => `<div style="position:relative;width:46px;height:46px"><div class="boatrot" style="transform:rotate(${rot}deg);transform-origin:23px 23px">${boatSVG(c)}</div>${c.name?`<div class="boatlbl">${esc(c.name)}</div>`:''}</div>`;
+const boatIcon = rot => L.divIcon({className:'', html:boatHtml(boatCfg,rot), iconSize:[46,46], iconAnchor:[23,23]});
+['boatName','boatHull','boatStripe','boatDeck'].forEach(id=>{
+  const el = document.getElementById(id), k = {boatName:'name',boatHull:'hull',boatStripe:'stripe',boatDeck:'deck'}[id];
+  el.value = boatCfg[k];
+  el.oninput = ()=>{ boatCfg[k] = el.value; store.set('cxBoat', boatCfg); drawBoatPrev(); if(me) me.setIcon(boatIcon(heading)); };
+});
+function drawBoatPrev(){ document.getElementById('boatPrev').innerHTML = boatHtml(boatCfg,0) + boatHtml(boatCfg,45); }
+drawBoatPrev();
+
 // ---------- GPS ----------
-let me=null, meAcc=null, watch=null;
+let me=null, meAcc=null, watch=null, heading=0, lastPos=null, lastFix=null;
+const follow = document.getElementById('follow');
+function bearing(a,b){ const t=Math.PI/180, y=Math.sin((b[1]-a[1])*t)*Math.cos(b[0]*t), x=Math.cos(a[0]*t)*Math.sin(b[0]*t)-Math.sin(a[0]*t)*Math.cos(b[0]*t)*Math.cos((b[1]-a[1])*t); return (Math.atan2(y,x)/t+360)%360; }
+function distM(a,b){ return Math.hypot((a[0]-b[0])*111320,(a[1]-b[1])*111320*Math.cos(a[0]*Math.PI/180)); }
 document.getElementById('gps').onclick = ()=>{
-  if (watch!==null){ navigator.geolocation.clearWatch(watch); watch=null; if(me){map.removeLayer(me);map.removeLayer(meAcc);me=null;} return; }
+  if (watch!==null){ navigator.geolocation.clearWatch(watch); watch=null; if(me){map.removeLayer(me);map.removeLayer(meAcc);me=null;} document.getElementById('gps').textContent='🛰 Mi posición'; return; }
   if (!navigator.geolocation) return alert('GPS no disponible');
-  let first=true;
+  let first=true; document.getElementById('gps').textContent='⏹ Parar GPS';
   watch = navigator.geolocation.watchPosition(p=>{
-    const ll=[p.coords.latitude,p.coords.longitude];
-    if(!me){ me=L.circleMarker(ll,{radius:8,color:'#fff',fillColor:'#1e90ff',fillOpacity:1,weight:3}).addTo(map); meAcc=L.circle(ll,{radius:p.coords.accuracy,weight:1}).addTo(map); }
-    me.setLatLng(ll); meAcc.setLatLng(ll).setRadius(p.coords.accuracy);
-    document.getElementById('coord').innerHTML = fmt(ll[0],ll[1]);
-    if(first){ map.setView(ll,17); first=false; }
-  }, err=>alert('No se pudo obtener la posición: '+err.message), {enableHighAccuracy:true});
+    const ll=[p.coords.latitude,p.coords.longitude]; lastFix = ll;
+    if (p.coords.heading!=null && !isNaN(p.coords.heading) && (p.coords.speed||0)>0.5) heading = p.coords.heading;
+    else if (lastPos && distM(lastPos,ll)>6) heading = bearing(lastPos,ll);
+    if (!lastPos || distM(lastPos,ll)>6) lastPos = ll;
+    if(!me){ me=L.marker(ll,{icon:boatIcon(heading),zIndexOffset:1000,interactive:false}).addTo(map); meAcc=L.circle(ll,{radius:p.coords.accuracy,weight:1,fillOpacity:.08}).addTo(map); }
+    me.setLatLng(ll); const r = me.getElement()?.querySelector('.boatrot'); if (r) r.style.transform=`rotate(${heading}deg)`;
+    meAcc.setLatLng(ll).setRadius(p.coords.accuracy);
+    const kn = p.coords.speed!=null ? ` · ${(p.coords.speed*1.94384).toFixed(1)} nudos` : '';
+    document.getElementById('coord').innerHTML = fmt(ll[0],ll[1]) + `<br>Rumbo ${heading.toFixed(0)}°${kn} · ±${p.coords.accuracy.toFixed(0)} m`;
+    if(first){ map.setView(ll,17); first=false; } else if (follow.checked) map.panTo(ll,{animate:true});
+  }, err=>alert('No se pudo obtener la posición: '+err.message), {enableHighAccuracy:true, maximumAge:2000});
 };
+
+// ---------- Capturas ----------
+let catches = store.get('cxCatches', []);
+const catchLayer = L.layerGroup().addTo(map), dlg = document.getElementById('catchDlg');
+const fishIcon = L.divIcon({className:'', html:'<div class="fish-ico">🐟</div>', iconSize:[24,24], iconAnchor:[12,12]});
+let editing = null, pending = null;
+function openCatch(ll, c){
+  editing = c || null; pending = ll;
+  const v = c || {sp: store.get('cxLastSp','Black bass'), lure: store.get('cxLastLure',''), n:1};
+  document.getElementById('cPos').innerHTML = fmt(ll[0],ll[1]) + (c ? `<br>${new Date(c.t).toLocaleString()}` : '');
+  document.getElementById('cSp').value = v.sp||'Black bass'; document.getElementById('cKg').value = v.kg??''; document.getElementById('cCm').value = v.cm??'';
+  document.getElementById('cDep').value = v.dep??''; document.getElementById('cN').value = v.n??1; document.getElementById('cLure').value = v.lure||''; document.getElementById('cNote').value = v.note||'';
+  document.getElementById('cDel').style.display = c ? 'inline-block' : 'none';
+  dlg.style.display = 'flex';
+}
+const num = id => { const v = document.getElementById(id).value; return v==='' ? null : +v; };
+document.getElementById('cCancel').onclick = ()=>{ dlg.style.display='none'; };
+document.getElementById('cSave').onclick = ()=>{
+  const c = editing || {id:'C'+Date.now().toString(36), t:Date.now(), lat:pending[0], lon:pending[1]};
+  Object.assign(c, {sp:document.getElementById('cSp').value, kg:num('cKg'), cm:num('cCm'), dep:num('cDep'), n:num('cN')||1, lure:document.getElementById('cLure').value.trim(), note:document.getElementById('cNote').value.trim()});
+  if (!editing) catches.push(c);
+  store.set('cxLastSp', c.sp); store.set('cxLastLure', c.lure); saveCatches(); dlg.style.display='none';
+};
+document.getElementById('cDel').onclick = ()=>{ if(editing && confirm('¿Borrar esta captura?')){ catches = catches.filter(x=>x!==editing); saveCatches(); dlg.style.display='none'; } };
+function saveCatches(){ store.set('cxCatches', catches); renderCatches(); }
+const cTxt = c => `${c.n>1?c.n+'× ':''}${c.sp}${c.kg?' · '+c.kg+' kg':''}${c.cm?' · '+c.cm+' cm':''}`;
+function renderCatches(){
+  catchLayer.clearLayers(); const list = document.getElementById('catchList'); list.innerHTML='';
+  const show = document.getElementById('showCatch').checked;
+  [...catches].sort((a,b)=>b.t-a.t).forEach(c=>{
+    if (show) L.marker([c.lat,c.lon],{icon:fishIcon,zIndexOffset:500}).addTo(catchLayer).on('click',()=>openCatch([c.lat,c.lon],c))
+      .bindTooltip(cTxt(c));
+    const d = document.createElement('div');
+    d.innerHTML = `🐟 ${esc(cTxt(c))} <span class="hint">${new Date(c.t).toLocaleDateString()}${c.lure?' · '+esc(c.lure):''}${c.dep!=null?' · '+c.dep+' m':''}</span>`;
+    d.onclick = ()=>{ map.setView([c.lat,c.lon],18); collapseOnMobile(); };
+    list.appendChild(d);
+  });
+  const tot = catches.reduce((a,c)=>a+(c.n||1),0);
+  document.getElementById('catchInfo').textContent = catches.length ? `${tot} peces en ${catches.length} puntos. Toca un 🐟 para editarlo.` : 'Guarda especie, peso, señuelo y profundidad donde has sacado un pez.';
+}
+document.getElementById('showCatch').onchange = renderCatches;
+document.getElementById('catchHere').onclick = ()=>{
+  if (lastFix) return openCatch(lastFix);
+  if (!navigator.geolocation) return alert('GPS no disponible: usa «En el mapa».');
+  navigator.geolocation.getCurrentPosition(p=>openCatch([p.coords.latitude,p.coords.longitude]), err=>alert('Sin GPS: '+err.message+'. Usa «En el mapa».'), {enableHighAccuracy:true, timeout:15000});
+};
+document.getElementById('catchMap').onclick = ()=>{ draw='catch'; hint.textContent='Toca el mapa donde has pescado.'; document.getElementById('catchInfo').textContent='Toca el mapa donde has pescado.'; collapseOnMobile(); };
+map.on('click', e=>{ if (draw==='catch'){ draw=null; renderCatches(); openCatch([e.latlng.lat,e.latlng.lng]); } });
+document.getElementById('catchCsv').onclick = ()=>{
+  const rows = [['fecha','especie','n','kg','cm','profundidad_m','senuelo','nota','latitud','longitud']].concat(catches.map(c=>[new Date(c.t).toLocaleString(),c.sp,c.n,c.kg??'',c.cm??'',c.dep??'',c.lure,c.note,c.lat.toFixed(7),c.lon.toFixed(7)]));
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'})); a.download = 'capturas_caspe.csv'; document.body.appendChild(a); a.click(); a.remove();
+};
+renderCatches();
 
 // ---------- Estado de red, móvil y modo app (PWA) ----------
 const net = document.getElementById('net');
