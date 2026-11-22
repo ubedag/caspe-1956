@@ -46,7 +46,8 @@ input[type=range]{width:100%}
 #catchDlg .box{background:var(--panel);color:var(--text);border-radius:10px;padding:14px 16px;width:100%;max-width:380px;max-height:90vh;overflow:auto}
 #catchDlg label{display:block;font-size:12px;color:var(--muted);margin-top:8px}
 #catchDlg input,#catchDlg select,#catchDlg textarea{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px}
-.det-ico{font-size:20px;line-height:20px;text-shadow:0 0 3px #000,0 0 6px #000}
+.det-ico.nv{opacity:.7;filter:grayscale(.35)}.det-ico .q{position:absolute;right:-6px;top:-6px;font:bold 11px system-ui;background:#ffcc00;color:#000;border-radius:7px;padding:0 3px;line-height:13px}
+.det-ico{position:relative;font-size:20px;line-height:20px;text-shadow:0 0 3px #000,0 0 6px #000}
 .leaflet-popup-content{font-size:13px}
 @media (max-width:700px){
  #app{flex-direction:column}
@@ -80,21 +81,24 @@ input[type=range]{width:100%}
   <p class="hint" id="detInfo"></p>
   <div class="row">
     <label><input type="checkbox" id="showDet" checked> Mostrar</label>
-    <label><input type="checkbox" id="onlyWater" checked> Solo bajo el agua</label>
+    <label><input type="checkbox" id="onlyWater" checked> Solo dentro del embalse lleno</label>
   </div>
   <div class="row">
     <label><input type="checkbox" id="onlyVer"> Solo verificadas ✔</label>
     <label><input type="checkbox" id="showLines"> Caminos de 1956</label>
   </div>
+  <div class="row">
+    <label><input type="checkbox" id="showShore" checked> Contorno del embalse lleno (121 m)</label>
+  </div>
   <div class="row"><span class="hint" style="flex:1">Confianza mínima: <b id="confV"></b></span></div>
-  <input id="conf" type="range" min="0" max="100" value="50">
+  <input id="conf" type="range" min="0" max="100" value="30">
   <div class="row"><select id="detType"><option value="">Todos los tipos</option></select></div>
   <div class="list" id="detList"></div>
   <div id="discBox" style="display:none;margin-top:8px">
     <div class="row" style="justify-content:space-between"><b>Descartadas (<span id="discN">0</span>)</b><button id="restoreAll">↩ Restaurar todas</button></div>
     <div class="list" id="discList"></div>
   </div>
-  <p class="hint">Las de confianza 60% son de la pasada fina en reculas (menos fiables): sube la barra a 65% para ocultarlas. Toca un icono para ver el tipo y las coordenadas. Si una detección es errónea, pulsa «Descartar» en su ficha.</p>
+  <p class="hint">Iconos con <b>?</b> y más claros = sin verificar (pueden ser parcelas o bancales). Sube la barra a 50% para ver solo las verificadas. «Embalse lleno» = todo lo que queda por debajo de la cota 121,5 m (MDT del IGN), incluidas las colas de las reculas. Toca un icono para ver el tipo y las coordenadas. Si una detección es errónea, pulsa «Descartar» en su ficha.</p>
 
   <h2>3. Mis marcas</h2>
   <div class="row">
@@ -261,7 +265,7 @@ const ico = t => (TIPOS[t]||TIPOS.OTRO)[0], nom = t => (TIPOS[t]||TIPOS.OTRO)[1]
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function dms(v, pos, neg){ const a=Math.abs(v), d=Math.floor(a), m=(a-d)*60; return `${d}°${m.toFixed(3)}'${v>=0?pos:neg}`; }
 const fmt = (la,lo) => `${la.toFixed(6)}, ${lo.toFixed(6)}<br>${dms(la,'N','S')} ${dms(lo,'E','W')}`;
-const divIcon = t => L.divIcon({className:'', html:`<div class="det-ico">${ico(t)}</div>`, iconSize:[22,22], iconAnchor:[11,11]});
+const divIcon = (t,nv) => L.divIcon({className:'', html:`<div class="det-ico${nv?' nv':''}">${ico(t)}${nv?'<span class="q">?</span>':''}</div>`, iconSize:[22,22], iconAnchor:[11,11]});
 
 // ---------- Detecciones ----------
 let discarded = new Set(store.get('cxDiscard', []));
@@ -270,7 +274,14 @@ const onlyVer = document.getElementById('onlyVer'), showLines = document.getElem
 const showDet = document.getElementById('showDet'), onlyWater = document.getElementById('onlyWater'), conf = document.getElementById('conf'), detType = document.getElementById('detType');
 const types = [...new Set(DET.puntos.map(p=>p.tipo))].sort();
 types.forEach(t=>detType.insertAdjacentHTML('beforeend',`<option value="${t}">${ico(t)} ${nom(t)} (${DET.puntos.filter(p=>p.tipo===t).length})</option>`));
-document.getElementById('detInfo').textContent = `${DET.puntos.length} estructuras detectadas en ${META.teselas||'?'} recuadros del vuelo de 1956; ${DET.puntos.filter(p=>p.bajo_agua).length} quedan hoy bajo el agua (${DET.puntos.filter(p=>p.bajo_agua&&p.verificado).length} verificadas ✔). ${DET.lineas.length} tramos de caminos sumergidos.`;
+document.getElementById('detInfo').textContent = `${DET.puntos.filter(p=>p.bajo_agua).length} estructuras de 1956 dentro del embalse lleno (${DET.puntos.filter(p=>p.bajo_agua&&p.verificado).length} verificadas ✔, el resto con ?). ${DET.lineas.length} tramos de caminos sumergidos.`;
+// contorno del embalse lleno
+const shore = L.layerGroup();
+(META.contorno||[]).forEach(c=>L.polygon(c,{color:'#00e5ff',weight:1.5,opacity:.9,fill:false,interactive:false}).addTo(shore));
+const showShore = document.getElementById('showShore');
+showShore.checked = store.get('cxShore', true);
+const updShore = ()=>{ store.set('cxShore', showShore.checked); showShore.checked ? shore.addTo(map) : map.removeLayer(shore); };
+showShore.onchange = updShore; updShore();
 [showDet,onlyWater,detType,onlyVer,showLines].forEach(e=>e.onchange=renderDet); conf.oninput = renderDet;
 function visibleDet(){
   const c = conf.value/100;
@@ -290,11 +301,11 @@ function renderDet(){
       .bindPopup(()=>`<b>${n} de 1956</b>${l.bajo_agua?' · bajo el agua':''}<br>${l.puntos.length} puntos<br><button onclick="discard('${l.id}')">Descartar</button>`);
   });
   v.puntos.forEach(p=>{
-    L.marker([p.lat,p.lon],{icon:divIcon(p.tipo)}).addTo(detLayer)
-      .bindPopup(()=>`<b>${ico(p.tipo)} ${nom(p.tipo)}</b> · ${p.id}<br>${fmt(p.lat,p.lon)}<br>Confianza ${(p.confianza*100|0)}%${p.verificado?(p.fina?' ✔ verificada (recula, pasada fina: menos fiable)':' ✔ verificada'):' · sin verificar'}${p.bajo_agua?' · <b>bajo el agua</b>':''}${p.tam?`<br>Tamaño aprox. ${p.tam} m`:''}${p.nota?`<br><i>${esc(p.nota)}</i>`:''}<br><button onclick="discard('${p.id}')">Descartar</button>`);
+    L.marker([p.lat,p.lon],{icon:divIcon(p.tipo,!p.verificado)}).addTo(detLayer)
+      .bindPopup(()=>`<b>${ico(p.tipo)} ${nom(p.tipo)}</b> · ${p.id}<br>${fmt(p.lat,p.lon)}<br>Confianza ${(p.confianza*100|0)}%${p.verificado?(p.fina?' ✔ verificada (recula, pasada fina: menos fiable)':' ✔ verificada'):' · sin verificar'}${p.agua_hoy?'<br><b>Bajo el agua</b> en la foto actual':p.bajo_agua?'<br><b>Se inunda con el embalse lleno</b> (orilla o cola de recula)':''}${p.tam?`<br>Tamaño aprox. ${p.tam} m`:''}${p.nota?`<br><i>${esc(p.nota)}</i>`:''}<br><button onclick="discard('${p.id}')">Descartar</button>`);
   });
   v.puntos.slice(0,400).forEach(p=>{
-    const d = document.createElement('div'); d.innerHTML = `${ico(p.tipo)} ${p.id} · ${nom(p.tipo)} <span class="hint">${(p.confianza*100|0)}%${p.verificado?' ✔':''}</span>`;
+    const d = document.createElement('div'); d.innerHTML = `${ico(p.tipo)} ${p.id} · ${nom(p.tipo)} <span class="hint">${(p.confianza*100|0)}%${p.verificado?' ✔':' ?'}</span>`;
     d.onclick = ()=>{ map.setView([p.lat,p.lon], 18); collapseOnMobile(); }; list.appendChild(d);
   });
 }
