@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="EmbalseCaspe" xmlns="http://www.topografix.com/GPX/1/1">
-<metadata><name>Caspe 1956 mas fiables</name></metadata>
+<metadata><name>Mequinenza 1956 - mas fiables</name></metadata>
 <wpt lat="41.4021866" lon="0.2089709"><name>ERA D032</name><desc>Era 1956 conf 85%</desc><sym>diamond</sym></wpt>
 <wpt lat="41.4025616" lon="0.2045544"><name>ERA D041</name><desc>Era 1956 conf 85%</desc><sym>diamond</sym></wpt>
 <wpt lat="41.4032908" lon="0.2034338"><name>CASA D043</name><desc>Casa/masia 1956 conf 90%</desc><sym>house</sym></wpt>
@@ -42,11 +42,14 @@
 <wpt lat="41.2899217" lon="0.0431818"><name>ERA D277</name><desc>Era 1956 conf 95%</desc><sym>diamond</sym></wpt>
 <wpt lat="41.3101967" lon="0.0416547"><name>ERA D281</name><desc>Era 1956 conf 95%</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2914612" lon="0.0385675"><name>RUIN D282</name><desc>Ruina 1956 conf 80%</desc><sym>house</sym></wpt>
+<wpt lat="41.2752923" lon="0.0369855"><name>CASA D286</name><desc>Casa/masia 1956 conf 85% recula/orilla</desc><sym>house</sym></wpt>
 <wpt lat="41.2805723" lon="0.0352496"><name>CASA D292</name><desc>Casa/masia 1956 conf 85%</desc><sym>house</sym></wpt>
+<wpt lat="41.2698385" lon="0.0333600"><name>CASA D296</name><desc>Casa/masia 1956 conf 90% recula/orilla</desc><sym>house</sym></wpt>
 <wpt lat="41.2711638" lon="0.0327338"><name>CASA D297</name><desc>Casa/masia 1956 conf 80%</desc><sym>house</sym></wpt>
 <wpt lat="41.2745492" lon="0.0326074"><name>CASA D298</name><desc>Casa/masia 1956 conf 90%</desc><sym>house</sym></wpt>
 <wpt lat="41.2778890" lon="0.0325360"><name>ERA D299</name><desc>Era 1956 conf 95%</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2789582" lon="0.0323437"><name>ERA D300</name><desc>Era 1956 conf 95%</desc><sym>diamond</sym></wpt>
+<wpt lat="41.2807044" lon="0.0307947"><name>CASA D302</name><desc>Casa/masia 1956 conf 90% recula/orilla</desc><sym>house</sym></wpt>
 <wpt lat="41.2936363" lon="0.0305035"><name>CASA D303</name><desc>Casa/masia 1956 conf 90%</desc><sym>house</sym></wpt>
 <wpt lat="41.2728276" lon="0.0297125"><name>ERA D305</name><desc>Era 1956 conf 95%</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2867435" lon="0.0261694"><name>ERA D308</name><desc>Era 1956 conf 95%</desc><sym>diamond</sym></wpt>
@@ -54,6 +57,7 @@
 <wpt lat="41.2900992" lon="0.0259552"><name>ERA D310</name><desc>Era 1956 conf 90%</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2901652" lon="0.0256860"><name>CASA D311</name><desc>Casa/masia 1956 conf 95%</desc><sym>house</sym></wpt>
 <wpt lat="41.2948827" lon="0.0244995"><name>CASA D314</name><desc>Casa/masia 1956 conf 90%</desc><sym>house</sym></wpt>
+<wpt lat="41.2851419" lon="0.0143866"><name>CASA D321</name><desc>Casa/masia 1956 conf 95% recula/orilla</desc><sym>house</sym></wpt>
 <wpt lat="41.3064418" lon="0.0114752"><name>ERA D324</name><desc>Era 1956 conf 85%</desc><sym>diamond</sym></wpt>
 <wpt lat="41.3047128" lon="0.0114038"><name>CASA D325</name><desc>Casa/masia 1956 conf 85%</desc><sym>house</sym></wpt>
 <wpt lat="41.3044611" lon="0.0112335"><name>CASA D326</name><desc>Casa/masia 1956 conf 85%</desc><sym>house</sym></wpt>
@@ -72,9 +76,11 @@
 <wpt lat="41.2618407" lon="-0.0052185"><name>CASA D377</name><desc>Casa/masia 1956 conf 90%</desc><sym>house</sym></wpt>
 <wpt lat="41.2793628" lon="-0.0068335"><name>CASA D383</name><desc>Casa/masia 1956 conf 95%</desc><sym>house</sym></wpt>
 <wpt lat="41.1369816" lon="-0.0078387"><name>CASA D388</name><desc>Casa/masia 1956 conf 80%</desc><sym>house</sym></wpt>
+<wpt lat="41.2371308" lon="-0.0088934"><name>CASA D391</name><desc>Casa/masia 1956 conf 90% recula/orilla</desc><sym>house</sym></wpt>
 <wpt lat="41.3085008" lon="-0.0090857"><name>ERA D393</name><desc>Era 1956 conf 95%</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2411293" lon="-0.0097394"><name>CASA D395</name><desc>Casa/masia 1956 conf 89%</desc><sym>house</sym></wpt>
 <wpt lat="41.1243746" lon="-0.0098987"><name>CASA D398</name><desc>Casa/masia 1956 conf 90%</desc><sym>house</sym></wpt>
+<wpt lat="41.2939582" lon="-0.0103546"><name>ERA D401</name><desc>Era 1956 conf 95% recula/orilla</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2385270" lon="-0.0105249"><name>OTRO D402</name><desc>Otro 1956 conf 87%</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2970040" lon="-0.0116071"><name>CASA D405</name><desc>Casa/masia 1956 conf 85%</desc><sym>house</sym></wpt>
 <wpt lat="41.1200049" lon="-0.0118597"><name>PTE D406</name><desc>Puente 1956 conf 85%</desc><sym>bridge</sym></wpt>
@@ -83,13 +89,19 @@
 <wpt lat="41.2663207" lon="-0.0193524"><name>CASA D419</name><desc>Casa/masia 1956 conf 85%</desc><sym>house</sym></wpt>
 <wpt lat="41.2656353" lon="-0.0206104"><name>CASA D422</name><desc>Casa/masia 1956 conf 90%</desc><sym>house</sym></wpt>
 <wpt lat="41.2604450" lon="-0.0230548"><name>MURO D428</name><desc>Muro 1956 conf 90%</desc><sym>diamond</sym></wpt>
+<wpt lat="41.2385890" lon="-0.0336127"><name>CASA D465</name><desc>Casa/masia 1956 conf 90% recula/orilla</desc><sym>house</sym></wpt>
 <wpt lat="41.2548949" lon="-0.0377051"><name>CASA D486</name><desc>Casa/masia 1956 conf 80%</desc><sym>house</sym></wpt>
+<wpt lat="41.2411128" lon="-0.0383258"><name>CASA D490</name><desc>Casa/masia 1956 conf 85% recula/orilla</desc><sym>house</sym></wpt>
 <wpt lat="41.2547793" lon="-0.0414240"><name>CASA D505</name><desc>Casa/masia 1956 conf 90%</desc><sym>house</sym></wpt>
 <wpt lat="41.2593714" lon="-0.0415009"><name>RUIN D507</name><desc>Ruina 1956 conf 85%</desc><sym>house</sym></wpt>
+<wpt lat="41.2407245" lon="-0.0465820"><name>NAVE D528</name><desc>Nave 1956 conf 85% recula/orilla</desc><sym>house</sym></wpt>
+<wpt lat="41.2387088" lon="-0.0472522"><name>ERA D529</name><desc>Era 1956 conf 95% recula/orilla</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2575338" lon="-0.0584473"><name>CASA D564</name><desc>Casa/masia 1956 conf 90%</desc><sym>house</sym></wpt>
 <wpt lat="41.2679104" lon="-0.0717242"><name>CASA D588</name><desc>Casa/masia 1956 conf 95%</desc><sym>house</sym></wpt>
+<wpt lat="41.2672374" lon="-0.0727844"><name>ERA D596</name><desc>Era 1956 conf 85% recula/orilla</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2709120" lon="-0.0727954"><name>CASA D597</name><desc>Casa/masia 1956 conf 85%</desc><sym>house</sym></wpt>
 <wpt lat="41.2709285" lon="-0.0743555"><name>CORR D608</name><desc>Corral 1956 conf 90%</desc><sym>house</sym></wpt>
+<wpt lat="41.2673282" lon="-0.0808539"><name>ERA D613</name><desc>Era 1956 conf 95% recula/orilla</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2669153" lon="-0.0816943"><name>CASA D616</name><desc>Casa/masia 1956 conf 85%</desc><sym>house</sym></wpt>
 <wpt lat="41.2675883" lon="-0.0900879"><name>MOLI D634</name><desc>Molino 1956 conf 95%</desc><sym>house</sym></wpt>
 <wpt lat="41.2833463" lon="-0.0955811"><name>ERA D662</name><desc>Era 1956 conf 95%</desc><sym>diamond</sym></wpt>
@@ -100,8 +112,11 @@
 <wpt lat="41.2771748" lon="-0.1135437"><name>NAVE D701</name><desc>Nave 1956 conf 95%</desc><sym>house</sym></wpt>
 <wpt lat="41.2680342" lon="-0.1141534"><name>CORR D712</name><desc>Corral 1956 conf 85%</desc><sym>house</sym></wpt>
 <wpt lat="41.2755772" lon="-0.1142578"><name>RUIN D713</name><desc>Ruina 1956 conf 90%</desc><sym>house</sym></wpt>
+<wpt lat="41.2685214" lon="-0.1159332"><name>ERA D717</name><desc>Era 1956 conf 95% recula/orilla</desc><sym>diamond</sym></wpt>
+<wpt lat="41.2685091" lon="-0.1162244"><name>ERA D718</name><desc>Era 1956 conf 95% recula/orilla</desc><sym>diamond</sym></wpt>
 <wpt lat="41.2396919" lon="-0.1246399"><name>CORR D743</name><desc>Corral 1956 conf 85%</desc><sym>house</sym></wpt>
 <wpt lat="41.2386179" lon="-0.1258484"><name>PRES D746</name><desc>Presa/azud 1956 conf 95%</desc><sym>diamond</sym></wpt>
+<wpt lat="41.2598875" lon="-0.1373291"><name>CASA D780</name><desc>Casa/masia 1956 conf 95% recula/orilla</desc><sym>house</sym></wpt>
 <wpt lat="41.2582771" lon="-0.1381531"><name>CASA D789</name><desc>Casa/masia 1956 conf 95%</desc><sym>house</sym></wpt>
 <wpt lat="41.2797467" lon="-0.1381531"><name>CASA D790</name><desc>Casa/masia 1956 conf 85%</desc><sym>house</sym></wpt>
 <wpt lat="41.2370069" lon="-0.1389771"><name>POZO D795</name><desc>Pozo/noria 1956 conf 80%</desc><sym>diamond</sym></wpt>
